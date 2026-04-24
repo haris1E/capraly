@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, Save, Check } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { defineCapralyTheme } from "@/lib/monacoTheme";
 import { detectLanguage } from "@/lib/languages";
 import { Badge } from "@/components/ui/badge";
+import { editorBus } from "@/lib/editorBus";
 
 export interface OpenFile {
   id: string;
@@ -20,11 +22,17 @@ interface Props {
   onContentChange: (content: string) => void;
 }
 
+/**
+ * Monaco-backed editor with debounced autosave + a global event bus hook
+ * so external panels (Bug Finder "Apply fix", keyboard shortcuts) can
+ * mutate buffer content via undoable Monaco edits.
+ */
 export default function CodeEditor({ file, onContentChange }: Props) {
   const [localValue, setLocalValue] = useState(file?.content ?? "");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const dirtyRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   // Sync incoming file
   useEffect(() => {
@@ -60,7 +68,29 @@ export default function CodeEditor({ file, onContentChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localValue, file?.id]);
 
+  // Listen for "apply-fix" / "save" commands from elsewhere in the app
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "apply-fix") {
+        const editor = editorRef.current;
+        if (!editor || !file) return toast.error("Open a file first");
+        const model = editor.getModel();
+        if (!model) return;
+        // Use executeEdits so it lands in the undo stack — Cmd/Ctrl+Z reverts.
+        const range = model.getFullModelRange();
+        editor.pushUndoStop();
+        editor.executeEdits("apply-fix", [{ range, text: e.code, forceMoveMarkers: true }]);
+        editor.pushUndoStop();
+        toast.success("Fix applied — press ⌘Z / Ctrl+Z to undo");
+      } else if (e.type === "save") {
+        if (file) saveMutation.mutate(localValue);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file?.id, localValue]);
+
   const handleMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
     defineCapralyTheme(monaco);
     monaco.editor.setTheme("capraly-dark");
     editor.updateOptions({
@@ -76,6 +106,11 @@ export default function CodeEditor({ file, onContentChange }: Props) {
       renderLineHighlight: "all",
       bracketPairColorization: { enabled: true },
     });
+
+    // Monaco-local Cmd/Ctrl+S → save (don't print)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      editorBus.emit({ type: "save" });
+    });
   };
 
   if (!file) {
@@ -85,6 +120,9 @@ export default function CodeEditor({ file, onContentChange }: Props) {
           <p className="font-display text-2xl font-semibold text-muted-foreground">No file open</p>
           <p className="mt-2 text-sm text-muted-foreground">
             Pick a file from the sidebar or create a new one to start editing.
+          </p>
+          <p className="mt-4 font-mono text-[11px] text-muted-foreground/70">
+            ⌘N new · ⌘S save · ⌘⇧B scan · ⌘L bugs · ⌘J chat
           </p>
         </div>
       </div>
