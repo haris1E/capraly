@@ -96,7 +96,7 @@ export default function AiErrorPanel() {
                 className="h-7 text-[11px]"
                 onClick={() => {
                   aiErrors.clear();
-                  editorBus.emit("retry", { endpoint: err.endpoint });
+                  editorBus.emit({ type: "retry", endpoint: err.endpoint });
                 }}
               >
                 <RefreshCw className="mr-1 h-3 w-3" />
