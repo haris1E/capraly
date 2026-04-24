@@ -276,6 +276,16 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
                     >
                       <FilePlus className="h-3 w-3" />
                     </button>
+                    <button
+                      title="Export project as ZIP"
+                      onClick={(e) => { e.stopPropagation(); exportMutation.mutate(p); }}
+                      disabled={exportMutation.isPending}
+                      className="invisible mx-0.5 rounded p-1 text-muted-foreground hover:bg-surface-3 hover:text-primary group-hover:visible disabled:opacity-50"
+                    >
+                      {exportMutation.isPending && exportMutation.variables?.id === p.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Download className="h-3 w-3" />}
+                    </button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
