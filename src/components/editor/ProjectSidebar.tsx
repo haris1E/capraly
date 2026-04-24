@@ -382,6 +382,13 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
             <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
+        <div className="flex items-center justify-center gap-2 px-2 pb-1 text-[10px] text-muted-foreground/70">
+          <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-foreground">Terms</Link>
+        </div>
       </div>
     </aside>
   );
