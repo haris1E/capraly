@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Send, Loader2, User as UserIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/Markdown";
 import { aiErrors } from "@/lib/aiErrorStore";
 import { aiThrottle } from "@/lib/aiThrottle";
+import { editorBus } from "@/lib/editorBus";
 import type { OpenFile } from "@/components/editor/CodeEditor";
 
 interface Msg { role: "user" | "assistant"; content: string }
