@@ -81,6 +81,30 @@ export default function AiErrorPanel() {
             </div>
           )}
 
+          {remainingMs === 0 && err.endpoint && (
+            <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-2">
+              <RefreshCw className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold text-primary">Ready to retry</p>
+                <p className="text-[10.5px] text-muted-foreground">
+                  The cooldown has ended. You can now retry the failed request.
+                </p>
+              </div>
+              <Button
+                variant="hero"
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={() => {
+                  aiErrors.clear();
+                  editorBus.emit("retry", { endpoint: err.endpoint });
+                }}
+              >
+                <RefreshCw className="mr-1 h-3 w-3" />
+                Retry now
+              </Button>
+            </div>
+          )}
+
           {err.rawBody && (
             <div>
               <button
