@@ -11,6 +11,7 @@ import DiffViewer from "@/components/editor/DiffViewer";
 import { parseFixSnippets } from "@/lib/parseFixSnippets";
 import { editorBus } from "@/lib/editorBus";
 import { aiErrors } from "@/lib/aiErrorStore";
+import { aiThrottle } from "@/lib/aiThrottle";
 import type { OpenFile } from "@/components/editor/CodeEditor";
 
 const MODELS = [
@@ -38,12 +39,24 @@ export default function BugFinder({ file }: Props) {
     if (!file) return toast.error("Open a file first");
     if (!file.content.trim()) return toast.error("File is empty");
 
+    // Client-side throttle — refuse rapid rescans / honor backoff window.
+    const guard = aiThrottle.check("bug-finder");
+    if (!guard.ok) {
+      const sec = Math.ceil(guard.retryAfterMs / 1000);
+      return toast.warning(
+        guard.reason === "blocked"
+          ? `Cooling down — retry in ${sec}s`
+          : `Slow down — wait ${sec}s before rescanning`,
+      );
+    }
+
     setRunning(true);
     setReport("");
     setOpenFix(null);
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    aiThrottle.markStart("bug-finder");
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bug-finder`;
     const { data: { session } } = await supabase.auth.getSession();
@@ -78,8 +91,10 @@ model: ${model}`;
             requestSummary,
             rawBody,
           });
+          aiThrottle.markFailure("bug-finder", status);
         },
       });
+      aiThrottle.markSuccess("bug-finder");
     } catch (e: any) {
       if (e?.name !== "AbortError") console.error(e);
     } finally {
