@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,10 +6,13 @@ import { Bug, MessageSquare, Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { editorBus } from "@/lib/editorBus";
 import ProjectSidebar from "@/components/editor/ProjectSidebar";
 import CodeEditor, { type OpenFile } from "@/components/editor/CodeEditor";
 import BugFinder from "@/components/editor/BugFinder";
 import ChatPanel from "@/components/editor/ChatPanel";
+import AiErrorPanel from "@/components/editor/AiErrorPanel";
 
 interface FileMeta { id: string; project_id: string; name: string; language: string }
 
@@ -17,6 +20,24 @@ export default function Workspace() {
   const { user } = useAuth();
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [liveContent, setLiveContent] = useState("");
+  const [tab, setTab] = useState("bugs");
+
+  useKeyboardShortcuts();
+
+  // React to focus-* events from shortcuts
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "focus-bugs") setTab("bugs");
+      else if (e.type === "focus-chat") {
+        setTab("chat");
+        // Defer focus to the next tick so the textarea is mounted
+        setTimeout(() => {
+          const ta = document.querySelector<HTMLTextAreaElement>("textarea[data-chat-input]");
+          ta?.focus();
+        }, 50);
+      }
+    });
+  }, []);
 
   // Load full file content when active changes
   const { data: openFile, isFetching } = useQuery({
@@ -62,19 +83,19 @@ export default function Workspace() {
         </ResizablePanel>
         <ResizableHandle className="bg-border hover:bg-primary/30 transition-base" />
         <ResizablePanel defaultSize={38} minSize={25}>
-          <Tabs defaultValue="bugs" className="flex h-full flex-col">
+          <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
             <TabsList className="h-9 w-full justify-start rounded-none border-b border-border bg-surface-1 p-0">
               <TabsTrigger
                 value="bugs"
                 className="h-9 rounded-none border-b-2 border-transparent px-4 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"
               >
-                <Bug className="mr-1.5 h-3.5 w-3.5" /> Bug Finder
+                <Bug className="mr-1.5 h-3.5 w-3.5" /> Bug Finder <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">⌘L</span>
               </TabsTrigger>
               <TabsTrigger
                 value="chat"
                 className="h-9 rounded-none border-b-2 border-transparent px-4 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"
               >
-                <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Chat
+                <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Chat <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">⌘J</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="bugs" className="m-0 flex-1 overflow-hidden">
@@ -86,6 +107,9 @@ export default function Workspace() {
           </Tabs>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* Floating AI error panel — visible only when an error is stored */}
+      <AiErrorPanel />
     </div>
   );
 }
