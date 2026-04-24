@@ -100,6 +100,17 @@ file: ${file?.name ?? "(none)"}`;
     }
   };
 
+  // Retry handler from error panel
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "retry" && e.endpoint === "code-chat") {
+        inputRef.current?.focus();
+        send();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, messages, file]);
+
   return (
     <div className="flex h-full flex-col bg-surface-1">
       <div className="flex h-12 items-center gap-2 border-b border-border px-3">
