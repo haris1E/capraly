@@ -7,6 +7,7 @@ import { streamCompletion } from "@/lib/streamCompletion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/Markdown";
+import { aiErrors } from "@/lib/aiErrorStore";
 import type { OpenFile } from "@/components/editor/CodeEditor";
 
 interface Msg { role: "user" | "assistant"; content: string }
@@ -20,6 +21,7 @@ export default function ChatPanel({ file }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const send = async () => {
     const text = input.trim();
@@ -32,6 +34,14 @@ export default function ChatPanel({ file }: Props) {
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/code-chat`;
     const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setBusy(false);
+      return toast.error("Sign in again — your session expired.");
+    }
+
+    const requestSummary = `POST /functions/v1/code-chat
+messages: ${next.length}
+file: ${file?.name ?? "(none)"}`;
 
     let assistantText = "";
     setMessages((m) => [...m, { role: "assistant", content: "" }]);
@@ -39,7 +49,7 @@ export default function ChatPanel({ file }: Props) {
     try {
       await streamCompletion({
         url,
-        authToken: session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        authToken: session.access_token,
         body: {
           messages: next,
           fileContext: file ? { filename: file.name, language: file.language, content: file.content } : null,
@@ -55,10 +65,14 @@ export default function ChatPanel({ file }: Props) {
             scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
           });
         },
-        onError: ({ status, message }) => {
-          if (status === 429) toast.error("Rate limit hit.");
-          else if (status === 402) toast.error("AI credits exhausted.");
-          else toast.error(message);
+        onError: ({ status, message, rawBody }) => {
+          aiErrors.push({
+            status,
+            message,
+            endpoint: "code-chat",
+            requestSummary,
+            rawBody,
+          });
         },
       });
     } catch (e: any) {
@@ -87,9 +101,10 @@ export default function ChatPanel({ file }: Props) {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Sparkles className="h-7 w-7 text-muted-foreground/50" />
             <p className="mt-3 text-sm font-medium">Ask about your code</p>
-            <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+            <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
               "Explain this function", "How do I optimize this?", "Refactor to async/await"…
             </p>
+            <p className="mt-3 font-mono text-[10px] text-muted-foreground/70">⌘J to focus this panel</p>
           </div>
         )}
         {messages.map((m, i) => (
@@ -115,6 +130,8 @@ export default function ChatPanel({ file }: Props) {
       <div className="border-t border-border p-2">
         <div className="flex gap-1.5">
           <Textarea
+            ref={inputRef}
+            data-chat-input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

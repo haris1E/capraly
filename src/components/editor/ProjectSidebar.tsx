@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronRight, ChevronDown, FileCode2, FilePlus, FolderPlus,
-  Trash2, Loader2, LogOut, Sparkles
+  Trash2, Loader2, LogOut, Sparkles, Download
 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { exportProjectAsZip } from "@/lib/exportZip";
+import { editorBus } from "@/lib/editorBus";
 import type { User } from "@supabase/supabase-js";
 
 interface Project {
@@ -176,6 +179,27 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
     onSuccess: () => qc.invalidateQueries({ queryKey: ["files", user.id] }),
   });
 
+  // Export project as ZIP (with manifest)
+  const exportMutation = useMutation({
+    mutationFn: async (project: Project) => {
+      await exportProjectAsZip(project.id, project.name, project.description);
+    },
+    onSuccess: () => toast.success("Project exported as ZIP"),
+    onError: (e: any) => toast.error(e.message ?? "Export failed"),
+  });
+
+  // Wire global shortcut: ⌘N → focus the first project's "new file" input.
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "new-file") {
+        const first = projects[0];
+        if (!first) return toast.message("Create a project first");
+        setExpanded((s) => ({ ...s, [first.id]: true }));
+        setNewFileFor(first.id);
+      }
+    });
+  }, [projects]);
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-surface-1">
       {/* Brand */}
@@ -251,6 +275,16 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
                       className="invisible mx-0.5 rounded p-1 text-muted-foreground hover:bg-surface-3 hover:text-foreground group-hover:visible"
                     >
                       <FilePlus className="h-3 w-3" />
+                    </button>
+                    <button
+                      title="Export project as ZIP"
+                      onClick={(e) => { e.stopPropagation(); exportMutation.mutate(p); }}
+                      disabled={exportMutation.isPending}
+                      className="invisible mx-0.5 rounded p-1 text-muted-foreground hover:bg-surface-3 hover:text-primary group-hover:visible disabled:opacity-50"
+                    >
+                      {exportMutation.isPending && exportMutation.variables?.id === p.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Download className="h-3 w-3" />}
                     </button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -347,6 +381,13 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
           >
             <LogOut className="h-3.5 w-3.5" />
           </button>
+        </div>
+        <div className="flex items-center justify-center gap-2 px-2 pb-1 text-[10px] text-muted-foreground/70">
+          <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-foreground">Terms</Link>
         </div>
       </div>
     </aside>

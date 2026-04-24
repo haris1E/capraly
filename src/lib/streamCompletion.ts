@@ -1,14 +1,23 @@
 /**
  * Streaming SSE parser for Lovable AI Gateway (OpenAI-compatible).
  * Calls onDelta with each token as it arrives.
+ *
+ * On HTTP errors we expose the parsed body so callers can route into a
+ * dedicated error panel (status, message, raw body) with retry guidance.
  */
+export interface StreamErrorInfo {
+  status?: number;
+  message: string;
+  rawBody?: string;
+}
+
 export async function streamCompletion(opts: {
   url: string;
   body: unknown;
   authToken?: string;
   signal?: AbortSignal;
   onDelta: (chunk: string) => void;
-  onError?: (err: { status?: number; message: string }) => void;
+  onError?: (err: StreamErrorInfo) => void;
 }): Promise<void> {
   const { url, body, authToken, signal, onDelta, onError } = opts;
 
@@ -24,11 +33,15 @@ export async function streamCompletion(opts: {
 
   if (!resp.ok || !resp.body) {
     let msg = `Request failed (${resp.status})`;
+    let raw: string | undefined;
     try {
-      const j = await resp.json();
-      msg = j?.error ?? msg;
+      raw = await resp.text();
+      try {
+        const j = JSON.parse(raw);
+        msg = j?.error ?? msg;
+      } catch { /* not JSON */ }
     } catch { /* noop */ }
-    onError?.({ status: resp.status, message: msg });
+    onError?.({ status: resp.status, message: msg, rawBody: raw });
     throw new Error(msg);
   }
 

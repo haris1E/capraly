@@ -153,7 +153,14 @@ export default function Landing() {
       </section>
 
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        Built with Lovable Cloud · React · Monaco
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-foreground">Terms</Link>
+        </div>
+        <p className="mt-2 text-muted-foreground/70">© {new Date().getFullYear()} Capraly · Built with Lovable Cloud · React · Monaco</p>
       </footer>
     </div>
   );

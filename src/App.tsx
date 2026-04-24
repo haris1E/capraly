@@ -7,6 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Workspace from "./pages/Workspace";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -23,6 +26,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route
             path="/editor"
             element={

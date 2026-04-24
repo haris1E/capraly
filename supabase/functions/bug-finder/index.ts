@@ -1,5 +1,8 @@
 // AI Bug Finder — analyzes a code file and streams structured findings.
 // Calls Lovable AI Gateway (no extra API key — LOVABLE_API_KEY is preset).
+// Requires a valid Supabase session — no anonymous calls allowed.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +32,21 @@ If there are no issues, say so plainly and suggest one improvement.`;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // ── Auth: require a valid Supabase JWT ──────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return json({ error: "Unauthorized — sign in to use the AI bug finder." }, 401);
+  }
+  const token = authHeader.slice(7);
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const { data: claims, error: authErr } = await sb.auth.getClaims(token);
+  if (authErr || !claims?.claims?.sub) {
+    return json({ error: "Unauthorized — invalid or expired session." }, 401);
+  }
 
   try {
     const { code, language, filename, model } = await req.json();
