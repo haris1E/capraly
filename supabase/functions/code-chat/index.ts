@@ -1,4 +1,7 @@
 // AI Code Chat — conversational assistant aware of the current open file.
+// Requires a valid Supabase session — no anonymous calls allowed.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +11,21 @@ const corsHeaders = {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // ── Auth: require a valid Supabase JWT ──────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return json({ error: "Unauthorized — sign in to use chat." }, 401);
+  }
+  const token = authHeader.slice(7);
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const { data: claims, error: authErr } = await sb.auth.getClaims(token);
+  if (authErr || !claims?.claims?.sub) {
+    return json({ error: "Unauthorized — invalid or expired session." }, 401);
+  }
 
   try {
     const { messages, fileContext, model } = await req.json();
