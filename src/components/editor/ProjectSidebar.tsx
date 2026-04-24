@@ -179,6 +179,27 @@ export default function ProjectSidebar({ user, activeFileId, onOpenFile }: Props
     onSuccess: () => qc.invalidateQueries({ queryKey: ["files", user.id] }),
   });
 
+  // Export project as ZIP (with manifest)
+  const exportMutation = useMutation({
+    mutationFn: async (project: Project) => {
+      await exportProjectAsZip(project.id, project.name, project.description);
+    },
+    onSuccess: () => toast.success("Project exported as ZIP"),
+    onError: (e: any) => toast.error(e.message ?? "Export failed"),
+  });
+
+  // Wire global shortcut: ⌘N → focus the first project's "new file" input.
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "new-file") {
+        const first = projects[0];
+        if (!first) return toast.message("Create a project first");
+        setExpanded((s) => ({ ...s, [first.id]: true }));
+        setNewFileFor(first.id);
+      }
+    });
+  }, [projects]);
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-surface-1">
       {/* Brand */}
