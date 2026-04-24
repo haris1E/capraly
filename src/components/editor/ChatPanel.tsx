@@ -31,9 +31,9 @@ export default function ChatPanel({ file }: Props) {
     // Client-side throttle — prevent rapid-fire sends after a 429/402.
     const guard = aiThrottle.check("code-chat");
     if (!guard.ok) {
-      const sec = Math.ceil(guard.retryAfterMs / 1000);
+      const sec = Math.ceil((guard as { retryAfterMs: number }).retryAfterMs / 1000);
       toast.warning(
-        guard.reason === "blocked"
+        (guard as { reason: "blocked" | "cooldown" }).reason === "blocked"
           ? `Cooling down — retry in ${sec}s`
           : `Slow down — wait ${sec}s before sending again`,
       );
