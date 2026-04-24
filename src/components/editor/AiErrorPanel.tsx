@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { AlertOctagon, X, Copy, ChevronDown, ChevronRight, Timer } from "lucide-react";
+import { AlertOctagon, X, Copy, ChevronDown, ChevronRight, Timer, RefreshCw } from "lucide-react";
 import { useAiError, aiErrors, retryGuidance } from "@/lib/aiErrorStore";
-import { useThrottleTick } from "@/lib/aiThrottle";
+import { useThrottleTick, aiThrottle } from "@/lib/aiThrottle";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { editorBus } from "@/lib/editorBus";
 
 /**
  * Floating AI error panel — surfaces the latest 4xx/5xx response from the
