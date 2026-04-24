@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronRight, ChevronDown, FileCode2, FilePlus, FolderPlus,
-  Trash2, Loader2, LogOut, Sparkles
+  Trash2, Loader2, LogOut, Sparkles, Download
 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { exportProjectAsZip } from "@/lib/exportZip";
+import { editorBus } from "@/lib/editorBus";
 import type { User } from "@supabase/supabase-js";
 
 interface Project {
