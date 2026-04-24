@@ -103,10 +103,11 @@ model: ${model}`;
     }
   };
 
-  // External shortcut handler (Cmd/Ctrl+Shift+B)
+  // External shortcut handler (Cmd/Ctrl+Shift+B) + retry from error panel
   useEffect(() => {
     return editorBus.on((e) => {
       if (e.type === "run-bug-scan") runScan();
+      if (e.type === "retry" && e.endpoint === "bug-finder") runScan();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id, file?.content, model]);
