@@ -21,6 +21,6 @@ export const editorBus = {
   },
   on(h: Handler) {
     handlers.add(h);
-    return () => handlers.delete(h);
+    return () => { handlers.delete(h); };
   },
 };
