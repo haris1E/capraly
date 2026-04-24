@@ -5,6 +5,9 @@
  * Why: 429/402 toasts disappear; users need a stable, inspectable surface
  * with retry guidance. This is a zero-dependency pub/sub with a snapshot
  * useSyncExternalStore-friendly API.
+ *
+ * Also tracks a `blockedUntil` timestamp set by aiThrottle so the panel
+ * can render a live retry countdown.
  */
 import { useSyncExternalStore } from "react";
 
@@ -16,6 +19,7 @@ export interface AiErrorRecord {
   requestSummary: string;       // short description of payload (no secrets)
   rawBody?: string;             // optional raw response text
   timestamp: number;
+  blockedUntil?: number;        // ms wall-clock — set by aiThrottle on 429/402
 }
 
 let current: AiErrorRecord | null = null;
@@ -28,6 +32,12 @@ function emit() {
 export const aiErrors = {
   push(rec: Omit<AiErrorRecord, "id" | "timestamp">) {
     current = { ...rec, id: crypto.randomUUID(), timestamp: Date.now() };
+    emit();
+  },
+  /** Attach/refresh a backoff window to the current error (no-op if none). */
+  setBlockedUntil(ts: number) {
+    if (!current) return;
+    current = { ...current, blockedUntil: ts };
     emit();
   },
   clear() {
@@ -59,7 +69,7 @@ export function retryGuidance(status?: number): string {
     case 402:
       return "AI credits are exhausted. Add funds in Workspace → Usage, then retry.";
     case 429:
-      return "You're being rate limited. Wait ~30 seconds and try again, or switch to a lighter model (e.g. Gemini Flash Lite).";
+      return "You're being rate limited. Wait for the countdown to finish, or switch to a lighter model (e.g. Gemini Flash Lite).";
     case 413:
       return "The file is too large for a single scan. Split it into smaller modules and re-run.";
     case 500:

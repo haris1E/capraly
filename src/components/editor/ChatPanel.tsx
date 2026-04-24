@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/Markdown";
 import { aiErrors } from "@/lib/aiErrorStore";
+import { aiThrottle } from "@/lib/aiThrottle";
 import type { OpenFile } from "@/components/editor/CodeEditor";
 
 interface Msg { role: "user" | "assistant"; content: string }
@@ -26,8 +27,22 @@ export default function ChatPanel({ file }: Props) {
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+
+    // Client-side throttle — prevent rapid-fire sends after a 429/402.
+    const guard = aiThrottle.check("code-chat");
+    if (!guard.ok) {
+      const sec = Math.ceil(guard.retryAfterMs / 1000);
+      toast.warning(
+        guard.reason === "blocked"
+          ? `Cooling down — retry in ${sec}s`
+          : `Slow down — wait ${sec}s before sending again`,
+      );
+      return;
+    }
+
     setInput("");
     setBusy(true);
+    aiThrottle.markStart("code-chat");
 
     const next: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
@@ -73,8 +88,10 @@ file: ${file?.name ?? "(none)"}`;
             requestSummary,
             rawBody,
           });
+          aiThrottle.markFailure("code-chat", status);
         },
       });
+      aiThrottle.markSuccess("code-chat");
     } catch (e: any) {
       if (e?.name !== "AbortError") console.error(e);
     } finally {

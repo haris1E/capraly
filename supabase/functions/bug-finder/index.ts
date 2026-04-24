@@ -3,12 +3,37 @@
 // Requires a valid Supabase session — no anonymous calls allowed.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Allowlist — must mirror MODELS in src/components/editor/BugFinder.tsx.
+// Prevents authenticated users from enumerating or invoking arbitrary
+// (potentially expensive) models on the gateway.
+const ALLOWED_MODELS = new Set([
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-2.5-pro",
+  "openai/gpt-5-mini",
+  "openai/gpt-5-nano",
+  "openai/gpt-5",
+]);
+
+const BodySchema = z.object({
+  code: z.string().min(1).max(60_000),
+  language: z.string().max(40).optional(),
+  filename: z.string().max(255).optional(),
+  model: z
+    .string()
+    .max(80)
+    .refine((m) => ALLOWED_MODELS.has(m), { message: "Unknown model" })
+    .optional(),
+});
 
 const SYSTEM_PROMPT = `You are an elite senior code reviewer.
 Analyze the provided source file and:
@@ -49,13 +74,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { code, language, filename, model } = await req.json();
-    if (!code || typeof code !== "string") {
-      return json({ error: "Missing 'code' string" }, 400);
+    const raw = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      const flat = parsed.error.flatten();
+      return json({ error: "Invalid request body", fields: flat.fieldErrors }, 400);
     }
-    if (code.length > 60_000) {
-      return json({ error: "File too large (max 60k chars). Split it up." }, 413);
-    }
+    const { code, language, filename, model } = parsed.data;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);

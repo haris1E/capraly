@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { AlertOctagon, X, Copy, ChevronDown, ChevronRight } from "lucide-react";
+import { AlertOctagon, X, Copy, ChevronDown, ChevronRight, Timer } from "lucide-react";
 import { useAiError, aiErrors, retryGuidance } from "@/lib/aiErrorStore";
+import { useThrottleTick } from "@/lib/aiThrottle";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -13,10 +14,14 @@ import { toast } from "sonner";
  */
 export default function AiErrorPanel() {
   const err = useAiError();
+  useThrottleTick(); // re-render to animate countdown
   const [expanded, setExpanded] = useState(true);
   const [showRaw, setShowRaw] = useState(false);
 
   if (!err) return null;
+
+  const remainingMs = err.blockedUntil ? Math.max(0, err.blockedUntil - Date.now()) : 0;
+  const remainingSec = Math.ceil(remainingMs / 1000);
 
   const tone =
     err.status === 429 ? "border-warning/50 shadow-[0_0_30px_-10px_hsl(var(--warning)/0.5)]" :
@@ -62,6 +67,18 @@ export default function AiErrorPanel() {
           <Field label="What to do">
             <p className="text-muted-foreground">{retryGuidance(err.status)}</p>
           </Field>
+
+          {remainingMs > 0 && (
+            <div className="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/5 px-2.5 py-2">
+              <Timer className="h-3.5 w-3.5 shrink-0 text-warning" />
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold text-warning">Cooling down</p>
+                <p className="text-[10.5px] text-muted-foreground">
+                  Retries are paused to avoid burning credits. Try again in <span className="font-mono text-warning">{remainingSec}s</span>.
+                </p>
+              </div>
+            </div>
+          )}
 
           {err.rawBody && (
             <div>
