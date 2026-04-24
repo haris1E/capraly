@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Send, Loader2, User as UserIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/Markdown";
 import { aiErrors } from "@/lib/aiErrorStore";
 import { aiThrottle } from "@/lib/aiThrottle";
+import { editorBus } from "@/lib/editorBus";
 import type { OpenFile } from "@/components/editor/CodeEditor";
 
 interface Msg { role: "user" | "assistant"; content: string }
@@ -31,9 +32,9 @@ export default function ChatPanel({ file }: Props) {
     // Client-side throttle — prevent rapid-fire sends after a 429/402.
     const guard = aiThrottle.check("code-chat");
     if (!guard.ok) {
-      const sec = Math.ceil(guard.retryAfterMs / 1000);
+      const sec = Math.ceil((guard as { retryAfterMs: number }).retryAfterMs / 1000);
       toast.warning(
-        guard.reason === "blocked"
+        (guard as { reason: "blocked" | "cooldown" }).reason === "blocked"
           ? `Cooling down — retry in ${sec}s`
           : `Slow down — wait ${sec}s before sending again`,
       );
@@ -98,6 +99,17 @@ file: ${file?.name ?? "(none)"}`;
       setBusy(false);
     }
   };
+
+  // Retry handler from error panel
+  useEffect(() => {
+    return editorBus.on((e) => {
+      if (e.type === "retry" && e.endpoint === "code-chat") {
+        inputRef.current?.focus();
+        send();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, messages, file]);
 
   return (
     <div className="flex h-full flex-col bg-surface-1">

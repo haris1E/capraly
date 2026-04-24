@@ -9,7 +9,8 @@ type EditorEvent =
   | { type: "run-bug-scan" }
   | { type: "focus-chat" }
   | { type: "focus-bugs" }
-  | { type: "new-file" };
+  | { type: "new-file" }
+  | { type: "retry"; endpoint: string };            // retry a failed AI request
 
 type Handler = (e: EditorEvent) => void;
 

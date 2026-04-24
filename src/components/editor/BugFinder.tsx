@@ -42,9 +42,9 @@ export default function BugFinder({ file }: Props) {
     // Client-side throttle — refuse rapid rescans / honor backoff window.
     const guard = aiThrottle.check("bug-finder");
     if (!guard.ok) {
-      const sec = Math.ceil(guard.retryAfterMs / 1000);
+      const sec = Math.ceil((guard as { retryAfterMs: number }).retryAfterMs / 1000);
       toast.warning(
-        guard.reason === "blocked"
+        (guard as { reason: "blocked" | "cooldown" }).reason === "blocked"
           ? `Cooling down — retry in ${sec}s`
           : `Slow down — wait ${sec}s before rescanning`,
       );
@@ -103,10 +103,11 @@ model: ${model}`;
     }
   };
 
-  // External shortcut handler (Cmd/Ctrl+Shift+B)
+  // External shortcut handler (Cmd/Ctrl+Shift+B) + retry from error panel
   useEffect(() => {
     return editorBus.on((e) => {
       if (e.type === "run-bug-scan") runScan();
+      if (e.type === "retry" && e.endpoint === "bug-finder") runScan();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id, file?.content, model]);
