@@ -43,11 +43,12 @@ export default function BugFinder({ file }: Props) {
     const guard = aiThrottle.check("bug-finder");
     if (!guard.ok) {
       const sec = Math.ceil(guard.retryAfterMs / 1000);
-      return toast.warning(
+      toast.warning(
         guard.reason === "blocked"
           ? `Cooling down — retry in ${sec}s`
           : `Slow down — wait ${sec}s before rescanning`,
       );
+      return;
     }
 
     setRunning(true);

@@ -32,11 +32,12 @@ export default function ChatPanel({ file }: Props) {
     const guard = aiThrottle.check("code-chat");
     if (!guard.ok) {
       const sec = Math.ceil(guard.retryAfterMs / 1000);
-      return toast.warning(
+      toast.warning(
         guard.reason === "blocked"
           ? `Cooling down — retry in ${sec}s`
           : `Slow down — wait ${sec}s before sending again`,
       );
+      return;
     }
 
     setInput("");
