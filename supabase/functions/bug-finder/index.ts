@@ -2,7 +2,7 @@
 // Calls Lovable AI Gateway (no extra API key — LOVABLE_API_KEY is preset).
 // Requires a valid Supabase session — no anonymous calls allowed.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
