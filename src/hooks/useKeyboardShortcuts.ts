@@ -6,9 +6,16 @@ import { editorBus } from "@/lib/editorBus";
  *
  *  ⌘/Ctrl + N           → new file (handled by the sidebar)
  *  ⌘/Ctrl + S           → save active file
+ *  ⌘/Ctrl + K           → open inline-edit popup with current selection
  *  ⌘/Ctrl + Shift + B   → run bug scan
  *  ⌘/Ctrl + L           → focus the Bug Finder tab
  *  ⌘/Ctrl + J           → focus the Chat tab + input
+ *  ⌘/Ctrl + I           → focus the Composer tab
+ *  ⌘/Ctrl + Enter       → run active file in terminal
+ *
+ * Notes:
+ * - Monaco also wires ⌘S and ⌘K locally so they fire even when the editor
+ *   has focus (browser may otherwise eat them).
  */
 export function useKeyboardShortcuts() {
   useEffect(() => {
@@ -17,14 +24,15 @@ export function useKeyboardShortcuts() {
       if (!mod) return;
       const key = e.key.toLowerCase();
 
-      // Ignore when user is typing in our chat textarea — they may want native shortcuts.
-      // (We still allow Cmd+S which never types a character.)
       if (key === "n" && !e.shiftKey) {
         e.preventDefault();
         editorBus.emit({ type: "new-file" });
       } else if (key === "s" && !e.shiftKey) {
         e.preventDefault();
         editorBus.emit({ type: "save" });
+      } else if (key === "k" && !e.shiftKey) {
+        e.preventDefault();
+        editorBus.emit({ type: "open-cmdk" });
       } else if (key === "b" && e.shiftKey) {
         e.preventDefault();
         editorBus.emit({ type: "run-bug-scan" });
@@ -34,6 +42,12 @@ export function useKeyboardShortcuts() {
       } else if (key === "j" && !e.shiftKey) {
         e.preventDefault();
         editorBus.emit({ type: "focus-chat" });
+      } else if (key === "i" && !e.shiftKey) {
+        e.preventDefault();
+        editorBus.emit({ type: "focus-composer" });
+      } else if (key === "enter") {
+        e.preventDefault();
+        editorBus.emit({ type: "run-active-file" });
       }
     };
 
