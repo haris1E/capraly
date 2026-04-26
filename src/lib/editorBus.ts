@@ -1,16 +1,22 @@
 /**
  * Lightweight event bus for cross-component editor commands so panels
- * (BugFinder, ChatPanel, ProjectSidebar) and global keyboard shortcuts can
- * trigger actions inside the editor or other panels without prop-drilling.
+ * (BugFinder, ChatPanel, ProjectSidebar, Composer, Terminal, TopBar) and
+ * global keyboard shortcuts can trigger actions inside the editor or
+ * other panels without prop-drilling.
  */
 type EditorEvent =
-  | { type: "apply-fix"; code: string }              // replace editor content with `code` (undoable)
+  | { type: "apply-fix"; code: string }                // replace entire editor content (undoable)
+  | { type: "apply-selection-edit"; startLine: number; endLine: number; newText: string } // replace a specific range
   | { type: "save" }
   | { type: "run-bug-scan" }
   | { type: "focus-chat" }
   | { type: "focus-bugs" }
+  | { type: "focus-composer" }
   | { type: "new-file" }
-  | { type: "retry"; endpoint: string };            // retry a failed AI request
+  | { type: "open-cmdk" }                              // open inline-edit popup
+  | { type: "run-active-file" }                        // run current file in terminal
+  | { type: "clear-terminal" }
+  | { type: "retry"; endpoint: string };               // retry a failed AI request
 
 type Handler = (e: EditorEvent) => void;
 

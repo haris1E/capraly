@@ -1,10 +1,10 @@
-import type * as Monaco from "monaco-editor";
+import type { Monaco } from "@monaco-editor/react";
 
 /**
  * Apply a custom dark IDE theme to Monaco that matches our design tokens.
  * Called once when the editor mounts.
  */
-export function defineCapralyTheme(monaco: typeof Monaco) {
+export function defineCapralyTheme(monaco: Monaco) {
   monaco.editor.defineTheme("capraly-dark", {
     base: "vs-dark",
     inherit: true,

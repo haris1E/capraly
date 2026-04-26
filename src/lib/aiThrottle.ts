@@ -17,7 +17,7 @@
 import { useSyncExternalStore } from "react";
 import { aiErrors } from "./aiErrorStore";
 
-type Endpoint = "bug-finder" | "code-chat";
+type Endpoint = "bug-finder" | "code-chat" | "ai-edit" | "ai-composer";
 
 interface Bucket {
   lastCallAt: number;     // ms — when we last *started* a call
@@ -26,13 +26,17 @@ interface Bucket {
 }
 
 const MIN_GAP_MS: Record<Endpoint, number> = {
-  "bug-finder": 4_000,    // expensive — don't allow rapid rescans
-  "code-chat":  1_500,    // chatty — allow tighter cadence
+  "bug-finder":  4_000,    // expensive — don't allow rapid rescans
+  "code-chat":   1_500,    // chatty — allow tighter cadence
+  "ai-edit":     1_500,    // inline edits should feel snappy
+  "ai-composer": 5_000,    // multi-file = expensive
 };
 
 const buckets: Record<Endpoint, Bucket> = {
-  "bug-finder": { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
-  "code-chat":  { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
+  "bug-finder":  { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
+  "code-chat":   { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
+  "ai-edit":     { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
+  "ai-composer": { lastCallAt: 0, blockedUntil: 0, consecutiveBlocks: 0 },
 };
 
 const listeners = new Set<() => void>();
