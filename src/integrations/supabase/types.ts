@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_threads: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          messages: Json
+          owner_id: string
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          messages?: Json
+          owner_id: string
+          project_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          messages?: Json
+          owner_id?: string
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string | null
+          name: string
+          owner_id: string
+          project_id: string
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          owner_id: string
+          project_id: string
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          owner_id?: string
+          project_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           content: string
