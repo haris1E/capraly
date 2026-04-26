@@ -80,6 +80,42 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          outcome: string
+          resource_id: string | null
+          resource_type: string
+          target_owner: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          outcome?: string
+          resource_id?: string | null
+          resource_type: string
+          target_owner?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          outcome?: string
+          resource_id?: string | null
+          resource_type?: string
+          target_owner?: string | null
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           content: string
@@ -180,7 +216,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _audit_write: {
+        Args: {
+          _action: string
+          _actor_id: string
+          _details: Json
+          _outcome: string
+          _resource_id: string
+          _resource_type: string
+          _target_owner: string
+        }
+        Returns: undefined
+      }
+      log_blocked_attempt: {
+        Args: {
+          _action: string
+          _details?: Json
+          _resource_id: string
+          _resource_type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
