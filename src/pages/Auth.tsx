@@ -65,15 +65,15 @@ export default function Auth() {
     }
   };
 
-  const handleGoogle = async () => {
+  const handleOAuth = async (provider: "google" | "apple") => {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: `${window.location.origin}/editor`,
       });
       if (result.error) throw result.error;
     } catch (e: any) {
-      toast.error(e?.message ?? "Google sign-in failed");
+      toast.error(e?.message ?? `${provider} sign-in failed`);
       setBusy(false);
     }
   };
@@ -151,15 +151,28 @@ export default function Auth() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full bg-surface-1 hover:bg-surface-2"
-            disabled={busy}
-            onClick={handleGoogle}
-          >
-            <GoogleIcon />
-            <span className="ml-2">Continue with Google</span>
-          </Button>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="w-full bg-surface-1 hover:bg-surface-2"
+              disabled={busy}
+              onClick={() => handleOAuth("google")}
+            >
+              <GoogleIcon />
+              <span className="ml-2">Continue with Google</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full bg-surface-1 hover:bg-surface-2"
+              disabled={busy}
+              onClick={() => handleOAuth("apple")}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.24-.02-.317-.06-.06-1.13.473-2.31 1.137-3.07.694-.85 1.97-1.55 2.985-1.62.04.06.06.13.06.2zm4.565 17.8c-.063.165-.314 1.05-1.005 1.97-.582.79-1.19 1.59-2.16 1.6-.953.02-1.27-.55-2.36-.55-1.094 0-1.434.54-2.34.57-.93.03-1.638-.85-2.225-1.64-1.196-1.64-2.114-4.66-.886-6.7.61-1.02 1.704-1.66 2.886-1.68.928-.02 1.81.62 2.378.62.567 0 1.638-.76 2.762-.65.47.02 1.795.19 2.642 1.42-.07.04-1.59.92-1.575 2.78.014 2.21 1.94 2.94 1.96 2.95z"/>
+              </svg>
+              <span className="ml-2">Continue with Apple</span>
+            </Button>
+          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
