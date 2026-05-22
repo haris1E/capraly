@@ -19,6 +19,7 @@ import TopBar from "@/components/editor/TopBar";
 import InlineEditPopup from "@/components/editor/InlineEditPopup";
 import PresenceCursors from "@/components/editor/PresenceCursors";
 import AiErrorPanel from "@/components/editor/AiErrorPanel";
+import DeployWizard from "@/components/editor/DeployWizard";
 
 interface FileMeta { id: string; project_id: string; name: string; language: string }
 

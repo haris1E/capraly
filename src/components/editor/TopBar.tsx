@@ -61,12 +61,11 @@ export default function TopBar({ fileName }: Props) {
           variant="hero"
           size="sm"
           className="h-7 gap-1.5 text-xs"
-          onClick={() =>
-            toast.info("Deploy is coming soon — for now use Project → Export ZIP from the sidebar.")
-          }
+          onClick={() => editorBus.emit({ type: "open-deploy" })}
         >
           <Rocket className="h-3.5 w-3.5" /> Deploy
         </Button>
+
       </div>
     </div>
   );
