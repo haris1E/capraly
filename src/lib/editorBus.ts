@@ -14,6 +14,7 @@ type EditorEvent =
   | { type: "focus-composer" }
   | { type: "new-file" }
   | { type: "open-cmdk" }                              // open inline-edit popup
+  | { type: "open-deploy" }                            // open guided deploy wizard
   | { type: "run-active-file" }                        // run current file in terminal
   | { type: "clear-terminal" }
   | { type: "retry"; endpoint: string };               // retry a failed AI request
