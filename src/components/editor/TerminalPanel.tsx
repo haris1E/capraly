@@ -1,14 +1,14 @@
 /**
- * In-IDE terminal. Uses xterm.js for the visual surface and calls the
- * `run-code` edge function to execute the active file's contents in a
- * Deno sandbox (10s timeout, no permissions, JS/TS only). Output is
- * appended to the terminal and color-coded.
+ * In-IDE terminal. Renders with xterm.js and streams output from the
+ * `run-code` edge function over Server-Sent Events. Supports JS/TS via
+ * a sandboxed Deno subprocess and Python via Pyodide in the edge runtime.
+ * Wall-clock timeout 10s; output is byte-capped server-side.
  */
 import { useEffect, useRef, useState } from "react";
 import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
-import { Play, StopCircle, Trash2, Loader2 } from "lucide-react";
+import { Play, Trash2, Loader2, Square } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -21,14 +21,15 @@ interface Props {
 }
 
 const PROMPT = "\x1b[38;5;81mcapraly\x1b[0m \x1b[38;5;245m›\x1b[0m ";
+const RUNNABLE = new Set(["javascript", "typescript", "js", "ts", "python", "py"]);
 
 export default function TerminalPanel({ file }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [running, setRunning] = useState(false);
 
-  // Mount xterm once
   useEffect(() => {
     if (!containerRef.current || termRef.current) return;
     const term = new XTerm({
@@ -49,14 +50,14 @@ export default function TerminalPanel({ file }: Props) {
       },
       cursorBlink: true,
       convertEol: true,
-      scrollback: 2000,
+      scrollback: 5000,
       disableStdin: true,
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(containerRef.current);
     try { fit.fit(); } catch { /* noop */ }
-    term.writeln("\x1b[38;5;245mCapraly Terminal · Deno sandbox · 10s timeout\x1b[0m");
+    term.writeln("\x1b[38;5;245mCapraly Terminal · JS/TS + Python (Pyodide) · 10s timeout\x1b[0m");
     term.write(PROMPT);
 
     termRef.current = term;
@@ -71,19 +72,18 @@ export default function TerminalPanel({ file }: Props) {
     };
   }, []);
 
-  // Re-fit when the panel becomes visible / file changes
   useEffect(() => {
     const t = setTimeout(() => { try { fitRef.current?.fit(); } catch { /* noop */ } }, 60);
     return () => clearTimeout(t);
   }, [file?.id]);
 
-  const writeLine = (s: string, color?: string) => {
+  const writeChunk = (s: string, color?: string) => {
     if (!termRef.current) return;
-    const lines = s.split("\n");
-    for (const line of lines) {
-      if (color) termRef.current.writeln(`\x1b[${color}m${line}\x1b[0m`);
-      else termRef.current.writeln(line);
-    }
+    const text = color ? `\x1b[${color}m${s}\x1b[0m` : s;
+    termRef.current.write(text.replace(/\n/g, "\r\n"));
+  };
+  const writeLine = (s: string, color?: string) => {
+    writeChunk(s + "\n", color);
   };
 
   const clear = () => {
@@ -91,13 +91,19 @@ export default function TerminalPanel({ file }: Props) {
     termRef.current?.write(PROMPT);
   };
 
+  const stop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  };
+
   const run = async () => {
     if (!file) return toast.error("Open a file first");
+    if (running) return;
+
     const lang = file.language;
-    const supported = ["javascript", "typescript", "js", "ts"].includes(lang);
-    if (!supported) {
-      writeLine(`> ${file.name}`, "38;5;245");
-      writeLine(`Language "${lang}" is not runnable in the sandbox (JS/TS only).`, "38;5;203");
+    if (!RUNNABLE.has(lang)) {
+      writeLine(`$ run ${file.name}`, "38;5;81");
+      writeLine(`Language "${lang}" is not runnable (JS, TS, and Python only).`, "38;5;203");
       termRef.current?.write(PROMPT);
       return;
     }
@@ -108,36 +114,74 @@ export default function TerminalPanel({ file }: Props) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setRunning(false); return toast.error("Session expired"); }
 
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const started = performance.now();
+
     try {
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-code`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ language: lang, code: file.content }),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ language: lang, code: file.content, stream: true }),
+          signal: ctrl.signal,
         },
       );
-      const data = await resp.json();
 
-      if (!resp.ok) {
-        writeLine(`✗ ${data?.error ?? `HTTP ${resp.status}`}`, "38;5;203");
+      if (!resp.ok || !resp.body) {
+        const txt = await resp.text().catch(() => "");
+        writeLine(`✗ ${txt || `HTTP ${resp.status}`}`, "38;5;203");
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      let exitCode: number | null = null;
+      let durationMs = 0;
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let idx: number;
+        // SSE events separated by blank line
+        while ((idx = buf.indexOf("\n\n")) !== -1) {
+          const frame = buf.slice(0, idx);
+          buf = buf.slice(idx + 2);
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          let evt: any;
+          try { evt = JSON.parse(dataLine.slice(5).trim()); } catch { continue; }
+          if (evt.type === "stdout") writeChunk(evt.chunk);
+          else if (evt.type === "stderr") writeChunk(evt.chunk, "38;5;203");
+          else if (evt.type === "exit") { exitCode = evt.code; durationMs = evt.durationMs; }
+        }
+      }
+
+      if (exitCode === null) {
+        writeLine(`→ stream ended · ${Math.round(performance.now() - started)}ms`, "38;5;245");
       } else {
-        if (data.stdout) writeLine(data.stdout);
-        if (data.stderr) writeLine(data.stderr, "38;5;203");
         writeLine(
-          `→ exit ${data.exitCode} · ${data.durationMs}ms`,
-          data.exitCode === 0 ? "38;5;114" : "38;5;203",
+          `→ exit ${exitCode} · ${durationMs}ms`,
+          exitCode === 0 ? "38;5;114" : "38;5;203",
         );
       }
     } catch (e: any) {
-      writeLine(`✗ ${e?.message ?? "Network error"}`, "38;5;203");
+      if (e?.name === "AbortError") writeLine("✗ stopped", "38;5;203");
+      else writeLine(`✗ ${e?.message ?? "Network error"}`, "38;5;203");
     } finally {
       setRunning(false);
+      abortRef.current = null;
       termRef.current?.write(PROMPT);
     }
   };
 
-  // Listen for global "run" events
   useEffect(() => {
     return editorBus.on((e) => {
       if (e.type === "run-active-file") run();
@@ -154,22 +198,33 @@ export default function TerminalPanel({ file }: Props) {
           {file ? `· ${file.name}` : ""}
         </span>
         <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-[11px]"
-            onClick={run}
-            disabled={running || !file}
-          >
-            {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-            Run <span className="ml-1 font-mono text-[9px] text-muted-foreground">⌘↵</span>
-          </Button>
+          {running ? (
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={stop}>
+              <Square className="h-3 w-3" /> Stop
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[11px]"
+              onClick={run}
+              disabled={!file}
+            >
+              <Play className="h-3 w-3" />
+              Run <span className="ml-1 font-mono text-[9px] text-muted-foreground">⌘↵</span>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={clear}>
             <Trash2 className="h-3 w-3" /> Clear
           </Button>
         </div>
       </div>
       <div ref={containerRef} className="flex-1 overflow-hidden p-2" />
+      {running && (
+        <div className="flex items-center gap-1.5 border-t border-border bg-surface-1 px-3 py-1 text-[10px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> streaming…
+        </div>
+      )}
     </div>
   );
 }
