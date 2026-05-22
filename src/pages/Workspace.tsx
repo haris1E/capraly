@@ -19,6 +19,7 @@ import TopBar from "@/components/editor/TopBar";
 import InlineEditPopup from "@/components/editor/InlineEditPopup";
 import PresenceCursors from "@/components/editor/PresenceCursors";
 import AiErrorPanel from "@/components/editor/AiErrorPanel";
+import DeployWizard from "@/components/editor/DeployWizard";
 
 interface FileMeta { id: string; project_id: string; name: string; language: string }
 
@@ -31,6 +32,7 @@ export default function Workspace() {
   const [selection, setSelection] = useState<SelectionInfo | null>(null);
   const [editor, setEditor] = useState<MEditor.IStandaloneCodeEditor | null>(null);
   const [cmdkOpen, setCmdkOpen] = useState(false);
+  const [deployOpen, setDeployOpen] = useState(false);
 
   useKeyboardShortcuts();
 
@@ -47,6 +49,8 @@ export default function Workspace() {
         setTab("composer");
       } else if (e.type === "open-cmdk") {
         setCmdkOpen(true);
+      } else if (e.type === "open-deploy") {
+        setDeployOpen(true);
       }
     });
   }, []);
@@ -161,6 +165,12 @@ export default function Workspace() {
       />
 
       <AiErrorPanel />
+
+      <DeployWizard
+        projectId={activeProjectId}
+        open={deployOpen}
+        onClose={() => setDeployOpen(false)}
+      />
     </div>
   );
 }
