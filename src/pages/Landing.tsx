@@ -2,6 +2,17 @@ import { Link } from "react-router-dom";
 import { Sparkles, Bug, MessageSquare, Code2, Zap, Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import Seo from "@/components/Seo";
+
+const softwareLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Capraly",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Web",
+  url: "https://capraly.lovable.app",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 
 const features = [
   { icon: Bug, title: "AI Bug Finder", desc: "Catch bugs, security flaws, and perf traps before they ship — with line-level fixes.", grad: "bg-gradient-ai" },
