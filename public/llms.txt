@@ -1,0 +1,12 @@
+# Capraly
+
+> AI-powered code editor that reviews code line-by-line, flags real bugs, and suggests fixes — all in the browser.
+
+Capraly is a modern web-based code editor built on Monaco (the engine behind VS Code) and Lovable Cloud. It pairs a full-featured editor (file tree, tabs, terminal) with AI tools: a bug finder, an inline ⌘K rewrite, a pair-programming chat, and a multi-file composer. Code runs in a sandboxed edge runtime (JS/TS via Deno, Python via Pyodide). Projects export as ZIPs and deploy via Netlify/Vercel drop.
+
+## Pages
+
+- [Home](/): Product overview, features, and call to action.
+- [Pricing](/pricing): Free, Pro, and Team plans with feature comparison.
+- [Privacy](/privacy): Data handling, sub-processors, and user rights (GDPR/CCPA/LGPD).
+- [Terms](/terms): Terms of service and acceptable use policy.
