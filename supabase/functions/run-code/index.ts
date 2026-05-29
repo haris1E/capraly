@@ -138,6 +138,7 @@ async function runJsStreaming(
     args: ["run", "--no-prompt", "--quiet", tempPath],
     stdout: "piped",
     stderr: "piped",
+    clearEnv: true,
   });
   const child = cmd.spawn();
   const timer = setTimeout(() => {
