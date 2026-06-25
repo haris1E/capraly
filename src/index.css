@@ -2,188 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────
-   Capraly IDE — Design System
-   Dark IDE theme · electric cyan accent · violet for AI
-   All colors HSL.
-   ───────────────────────────────────────────── */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.6%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.6%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.6%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --accent: 0 0% 9.1%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.3% 60.2%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 0 0% 3.6%;
+  --radius: 0.5rem;
+}
 
-@layer base {
-  :root {
-    /* Surfaces */
-    --background: 222 30% 7%;
-    --foreground: 210 30% 96%;
+.dark {
+  --background: 0 0% 3.6%;
+  --foreground: 0 0% 98.2%;
+  --card: 0 0% 3.6%;
+  --card-foreground: 0 0% 98.2%;
+  --popover: 0 0% 3.6%;
+  --popover-foreground: 0 0% 98.2%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 98.2%;
+  --accent-foreground: 0 0% 9.1%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98.2%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 0 0% 83.1%;
+}
 
-    --surface-1: 222 27% 9%;     /* sidebar */
-    --surface-2: 222 24% 11%;    /* panels */
-    --surface-3: 222 22% 14%;    /* hover */
-    --surface-4: 222 20% 18%;    /* tabs active */
+* {
+  @apply border-border;
+}
 
-    --card: 222 24% 10%;
-    --card-foreground: 210 30% 96%;
-
-    --popover: 222 28% 9%;
-    --popover-foreground: 210 30% 96%;
-
-    /* Brand: electric cyan */
-    --primary: 187 95% 55%;
-    --primary-foreground: 222 47% 8%;
-    --primary-glow: 187 100% 70%;
-
-    /* Secondary: deep violet (AI) */
-    --secondary: 265 85% 65%;
-    --secondary-foreground: 210 40% 98%;
-    --secondary-glow: 270 100% 78%;
-
-    --muted: 222 18% 16%;
-    --muted-foreground: 215 16% 62%;
-
-    --accent: 187 95% 55%;
-    --accent-foreground: 222 47% 8%;
-
-    --destructive: 0 84% 62%;
-    --destructive-foreground: 210 40% 98%;
-
-    --warning: 38 95% 60%;
-    --warning-foreground: 222 47% 8%;
-
-    --success: 145 70% 50%;
-    --success-foreground: 222 47% 8%;
-
-    --border: 222 20% 18%;
-    --input: 222 20% 16%;
-    --ring: 187 95% 55%;
-
-    --radius: 0.6rem;
-
-    /* Syntax token colors (used by Monaco custom theme) */
-    --syntax-keyword: 265 85% 70%;
-    --syntax-string: 145 60% 60%;
-    --syntax-number: 30 95% 65%;
-    --syntax-comment: 215 16% 50%;
-    --syntax-function: 187 95% 65%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-ai: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)));
-    --gradient-glow: radial-gradient(ellipse at top, hsl(var(--primary) / 0.15), transparent 60%);
-    --gradient-surface: linear-gradient(180deg, hsl(var(--surface-2)), hsl(var(--surface-1)));
-
-    /* Shadows */
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.35);
-    --shadow-ai: 0 0 50px hsl(var(--secondary) / 0.4);
-    --shadow-panel: 0 8px 30px -8px hsl(0 0% 0% / 0.6);
-    --shadow-elevated: 0 20px 60px -20px hsl(0 0% 0% / 0.7);
-
-    /* Motion */
-    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Sidebar (shadcn) */
-    --sidebar-background: 222 27% 9%;
-    --sidebar-foreground: 215 16% 70%;
-    --sidebar-primary: 187 95% 55%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 222 22% 14%;
-    --sidebar-accent-foreground: 210 30% 96%;
-    --sidebar-border: 222 20% 16%;
-    --sidebar-ring: 187 95% 55%;
-  }
-
-  .dark {
-    /* Single theme; .dark mirrors :root for consistency */
-    --background: 222 30% 7%;
-    --foreground: 210 30% 96%;
-  }
+body {
+  @apply bg-background text-foreground;
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  html, body, #root {
-    height: 100%;
+  html {
+    @apply scroll-smooth;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv11", "ss01", "ss03";
-    background-image:
-      radial-gradient(circle at 15% 0%, hsl(var(--primary) / 0.08), transparent 50%),
-      radial-gradient(circle at 85% 100%, hsl(var(--secondary) / 0.06), transparent 50%);
-    background-attachment: fixed;
+    @apply antialiased;
   }
-
-  code, pre, .font-mono {
-    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-
-  ::selection {
-    background: hsl(var(--primary) / 0.3);
-    color: hsl(var(--foreground));
-  }
-
-  /* Scrollbars */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: hsl(var(--surface-1)); }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--surface-3));
-    border-radius: 6px;
-    border: 2px solid hsl(var(--surface-1));
-  }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--surface-4)); }
-}
-
-@layer utilities {
-  .bg-gradient-primary { background: var(--gradient-primary); }
-  .bg-gradient-ai { background: var(--gradient-ai); }
-  .bg-gradient-glow { background: var(--gradient-glow); }
-  .bg-gradient-surface { background: var(--gradient-surface); }
-
-  .shadow-glow { box-shadow: var(--shadow-glow); }
-  .shadow-ai { box-shadow: var(--shadow-ai); }
-  .shadow-panel { box-shadow: var(--shadow-panel); }
-  .shadow-elevated { box-shadow: var(--shadow-elevated); }
-
-  .transition-base { transition: var(--transition-base); }
-  .transition-smooth { transition: var(--transition-smooth); }
-
-  .text-gradient-primary {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .text-gradient-ai {
-    background: var(--gradient-ai);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .glass {
-    background: hsl(var(--surface-2) / 0.7);
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-    border: 1px solid hsl(var(--border) / 0.7);
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
-    50% { box-shadow: 0 0 35px hsl(var(--primary) / 0.6); }
-  }
-  .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
-
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .animate-slide-up { animation: slide-up 0.3s ease-out; }
-
-  @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-  }
-  .animate-blink { animation: blink 1s steps(1) infinite; }
 }
